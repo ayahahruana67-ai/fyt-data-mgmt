@@ -1,0 +1,367 @@
+# -*- coding: utf-8 -*-
+"""
+主题：浅色 / 深色双配色 + 跟随系统 + 字体（Win7 回退）+ QSS
+============================================================
+· 三种模式：auto(跟随系统) / light / dark；
+· COLORS 始终指向"当前生效"的配色，原地更新，旧引用不失效；
+· 状态样式尽量交给 QSS 动态属性驱动，切换主题只需重贴样式表。
+兼容 Windows 7 + Python 3.8 + PySide2(Qt5.15)。
+"""
+
+# ---------------- 浅色 ----------------
+LIGHT = {
+    "bg": "#eef1f7", "surface": "#ffffff", "surface2": "#f7f9fc",
+    "sidebar": "#1f2b45", "sidebar_h": "#2c3c60", "sidebar_a": "#3f6bb0",
+    "sidebar_fg": "#c7d2e8", "sidebar_dim": "#9fb0d0", "sidebar_grp": "#6f7ea3",
+    "accent": "#305496", "accent_l": "#3f6bb0", "accent_d": "#24406f",
+    "heading": "#24406f", "text": "#222b3a", "sub": "#5a6675", "hint": "#8a94a6",
+    "line": "#e2e7f0", "ok": "#1f7a4d", "warn": "#b25b00", "err": "#c0392b",
+    "ghost_hover": "#eaf0fb", "mini_bg": "#eef2f8", "mini_hover": "#e2e8f4",
+    "input_bg": "#ffffff", "list_bg": "#fbfcfe", "sel_fg": "#ffffff",
+    "scroll": "#c3cde0", "logbg": "#1e222b", "logfg": "#e6e6e6",
+    "tip_bg": "#2b3446", "tip_fg": "#ffffff", "tip_bd": "#3f6bb0",
+    "dis_bg": "#b8c2d6", "dis_fg": "#eef1f6", "shadow": "#20000000",
+}
+
+# ---------------- 深色 ----------------
+DARK = {
+    "bg": "#171a21", "surface": "#20242e", "surface2": "#272c38",
+    "sidebar": "#12151c", "sidebar_h": "#232838", "sidebar_a": "#3f6bb0",
+    "sidebar_fg": "#b7c2d8", "sidebar_dim": "#7f8aa4", "sidebar_grp": "#5f6b86",
+    "accent": "#4f80cf", "accent_l": "#5f92e0", "accent_d": "#3a63a8",
+    "heading": "#9fc0ff", "text": "#e6e9f0", "sub": "#a8b0c0", "hint": "#79839a",
+    "line": "#333a48", "ok": "#3fbb7d", "warn": "#e2953f", "err": "#e46a5c",
+    "ghost_hover": "#2b3348", "mini_bg": "#2a3040", "mini_hover": "#333b4e",
+    "input_bg": "#272c38", "list_bg": "#1c2029", "sel_fg": "#ffffff",
+    "scroll": "#3a4350", "logbg": "#12151c", "logfg": "#c9d1e0",
+    "tip_bg": "#2b3446", "tip_fg": "#ffffff", "tip_bd": "#4f80cf",
+    "dis_bg": "#3a4350", "dis_fg": "#6b748a", "shadow": "#40000000",
+}
+
+
+# COLORS 始终指向当前生效配色（原地更新，保证旧引用不失效）
+COLORS = dict(LIGHT)
+_mode = "auto"          # auto | light | dark
+_effective = "light"    # 实际生效：light | dark
+
+FONT_CANDIDATES = ["Microsoft YaHei UI", "Microsoft YaHei", "微软雅黑",
+                   "PingFang SC", "Segoe UI", "Tahoma"]
+MONO_CANDIDATES = ["Consolas", "Cascadia Mono", "Courier New"]
+_ui_font = None
+_mono_font = None
+
+
+def pick_font():
+    """挑一个系统真正装了的中文字体（Win7 回退）。缓存。"""
+    global _ui_font
+    if _ui_font:
+        return _ui_font
+    try:
+        from PySide2.QtGui import QFontDatabase
+        fams = set(QFontDatabase().families())
+        for f in FONT_CANDIDATES:
+            if f in fams:
+                _ui_font = f
+                break
+    except Exception:
+        pass
+    _ui_font = _ui_font or "Microsoft YaHei"
+    return _ui_font
+
+
+def pick_mono():
+    global _mono_font
+    if _mono_font:
+        return _mono_font
+    try:
+        from PySide2.QtGui import QFontDatabase
+        fams = set(QFontDatabase().families())
+        for f in MONO_CANDIDATES:
+            if f in fams:
+                _mono_font = f
+                break
+    except Exception:
+        pass
+    _mono_font = _mono_font or "Consolas"
+    return _mono_font
+
+
+def system_is_dark():
+    """读 Windows 注册表判断系统是否深色。Win7/读取失败一律视为浅色。"""
+    try:
+        import winreg
+        k = winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER,
+            r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize")
+        val, _ = winreg.QueryValueEx(k, "AppsUseLightTheme")
+        winreg.CloseKey(k)
+        return val == 0
+    except Exception:
+        return False
+
+
+def set_mode(mode):
+    """设置主题模式并解析生效配色。返回生效字符串 light/dark。"""
+    global _mode, _effective
+    _mode = mode if mode in ("auto", "light", "dark") else "auto"
+    if _mode == "auto":
+        _effective = "dark" if system_is_dark() else "light"
+    else:
+        _effective = _mode
+    src = DARK if _effective == "dark" else LIGHT
+    COLORS.clear()
+    COLORS.update(src)
+    return _effective
+
+
+def current_mode():
+    return _mode
+
+
+def effective():
+    return _effective
+
+
+def is_dark():
+    return _effective == "dark"
+
+
+def stylesheet():
+    """全局 QSS。基于当前 COLORS 与字体。"""
+    return _QSS.format(font=pick_font(), **COLORS)
+
+
+def repolish(widget):
+    """动态属性变化后，让 QSS 重新生效（不必重贴整表）。"""
+    try:
+        st = widget.style()
+        st.unpolish(widget)
+        st.polish(widget)
+        widget.update()
+    except Exception:
+        pass
+
+
+def set_prop(widget, name, value):
+    """设置动态属性并立即 repolish。bool 转成小写字符串以匹配 QSS 选择器。"""
+    widget.setProperty(name, str(value).lower() if isinstance(value, bool) else value)
+    repolish(widget)
+
+
+_QSS = """
+* {{ font-family: "{font}"; color: {text}; outline: none; }}
+QMainWindow, QWidget#Root {{ background: {bg}; }}
+QDialog {{ background: {bg}; }}
+
+/* 侧栏 */
+QWidget#Sidebar {{ background: {sidebar}; }}
+QLabel#Brand {{ color: #ffffff; font-size: 17px; font-weight: bold; padding: 20px 16px 2px 20px; }}
+QLabel#BrandSub {{ color: {sidebar_dim}; font-size: 10px; padding: 0 16px 14px 20px; }}
+QPushButton#NavBtn {{
+    color: {sidebar_fg}; background: transparent; border: none; border-left: 3px solid transparent;
+    text-align: left; padding: 11px 16px 11px 17px; font-size: 13px;
+}}
+QPushButton#NavBtn:hover {{ background: {sidebar_h}; color: #ffffff; }}
+QPushButton#NavBtn:checked {{
+    background: {sidebar_h}; color: #ffffff; font-weight: bold; border-left: 3px solid {accent_l};
+}}
+QLabel#NavGroup {{ color: {sidebar_grp}; font-size: 10px; padding: 16px 16px 4px 20px; letter-spacing: 2px; }}
+
+/* 卡片 */
+QFrame#Card {{ background: {surface}; border: 1px solid {line}; border-radius: 12px; }}
+QFrame#Card[dragging="true"] {{ border: 2px solid {accent_l}; background: {surface2}; }}
+
+/* 数据库导入拖拽区 */
+QFrame#DropArea {{
+    background: {surface2}; border: 2px dashed {scroll}; border-radius: 14px;
+}}
+QFrame#DropArea[dragging="true"] {{ border: 2px dashed {accent}; background: {surface}; }}
+QLabel#DropIcon {{ font-size: 40px; color: {accent}; }}
+QLabel#DropTitle {{ font-size: 15px; font-weight: bold; color: {heading}; }}
+
+/* 首页 */
+QFrame#HeroCard {{
+    background: {surface2}; border: 1px solid {line}; border-radius: 14px;
+}}
+QLabel#HeroTitle {{ font-size: 22px; font-weight: bold; color: {heading}; }}
+QLabel#HeroDesc {{ font-size: 12px; color: {text}; }}
+QLabel#SecTitle {{ font-size: 14px; font-weight: bold; color: {heading}; padding: 2px 0; }}
+QFrame#EntryCard {{
+    background: {surface}; border: 1px solid {line}; border-radius: 12px; min-height: 96px;
+}}
+QFrame#EntryCard:hover {{ border: 1px solid {accent}; background: {surface2}; }}
+QLabel#EntryIcon {{ font-size: 22px; }}
+QLabel#EntryTitle {{ font-size: 14px; font-weight: bold; color: {heading}; }}
+QLabel#EntryDesc {{ font-size: 11px; color: {hint}; }}
+QPushButton#CollapseHead {{
+    text-align: left; border: none; background: transparent; color: {heading};
+    font-size: 13px; font-weight: bold; padding: 7px 2px;
+}}
+QPushButton#CollapseHead:hover {{ color: {accent}; }}
+QLabel#CollapseBody {{
+    color: {text}; font-size: 12px; padding: 2px 6px 10px 18px; line-height: 150%;
+}}
+QLabel#CollapseBody code {{ background: {surface2}; color: {accent}; padding: 1px 4px; }}
+QLabel#PageTitle {{ font-size: 22px; font-weight: bold; color: {text}; }}
+QLabel#PageDesc {{ font-size: 12px; color: {sub}; }}
+QLabel#SecTitle {{ font-size: 13px; font-weight: bold; color: {heading}; }}
+QLabel#CardTitle {{ font-size: 13px; font-weight: bold; color: {text}; }}
+QLabel#Hint {{ color: {hint}; font-size: 11px; }}
+QLabel#OkText {{ color: {ok}; font-size: 11px; }}
+
+/* 序号/完成 徽标 —— 动态属性 done 驱动 */
+QLabel#Badge {{
+    background: {accent}; color: #ffffff; border-radius: 13px;
+    font-weight: bold; font-size: 12px; min-width: 26px; min-height: 26px;
+    max-width: 26px; max-height: 26px;
+}}
+QLabel#Badge[done="true"] {{ background: {ok}; }}
+
+/* 圆形帮助徽章 */
+QLabel#Help {{
+    background: {mini_bg}; color: {sub}; border: 1px solid {line}; border-radius: 9px;
+    font-size: 11px; font-weight: bold; min-width: 18px; min-height: 18px;
+    max-width: 18px; max-height: 18px; qproperty-alignment: AlignCenter;
+}}
+QLabel#Help:hover {{ background: {accent}; color: #ffffff; border: 1px solid {accent}; }}
+
+/* 状态点 —— 动态属性 state 驱动 */
+QLabel#StatusDot {{ font-size: 13px; color: {hint}; }}
+QLabel#StatusDot[state="ready"] {{ color: {accent}; }}
+QLabel#StatusDot[state="busy"]  {{ color: {accent_l}; }}
+QLabel#StatusDot[state="ok"]    {{ color: {ok}; }}
+QLabel#StatusDot[state="warn"]  {{ color: {warn}; }}
+QLabel#StatusDot[state="err"]   {{ color: {err}; }}
+
+/* 主按钮 */
+QPushButton#Primary {{
+    background: {accent}; color: #ffffff; border: none; border-radius: 9px;
+    padding: 10px 24px; font-size: 13px; font-weight: bold;
+}}
+QPushButton#Primary:hover {{ background: {accent_l}; }}
+QPushButton#Primary:pressed {{ background: {accent_d}; }}
+QPushButton#Primary:disabled {{ background: {dis_bg}; color: {dis_fg}; }}
+
+/* 次按钮 */
+QPushButton#Ghost {{
+    background: transparent; color: {accent}; border: 1px solid {accent};
+    border-radius: 9px; padding: 8px 16px; font-size: 12px;
+}}
+QPushButton#Ghost:hover {{ background: {ghost_hover}; }}
+QPushButton#Ghost:disabled {{ color: {dis_bg}; border: 1px solid {line}; }}
+QPushButton#Mini {{
+    background: {mini_bg}; color: {sub}; border: 1px solid {line};
+    border-radius: 7px; padding: 5px 12px; font-size: 11px;
+}}
+QPushButton#Mini:hover {{ background: {mini_hover}; color: {text}; }}
+
+/* 折叠"详细信息"链接式按钮 */
+QPushButton#Link {{
+    background: transparent; color: {sub}; border: none; padding: 3px 2px;
+    font-size: 11px; text-align: left;
+}}
+QPushButton#Link:hover {{ color: {accent}; }}
+
+/* 列表/拖拽区 */
+QListWidget {{
+    background: {list_bg}; border: 1px solid {line}; border-radius: 9px;
+    padding: 4px; font-size: 12px;
+}}
+QListWidget::item {{ padding: 5px 8px; border-radius: 6px; }}
+QListWidget::item:selected {{ background: {accent}; color: {sel_fg}; }}
+
+/* 日志 */
+QPlainTextEdit#Log {{
+    background: {logbg}; color: {logfg}; border: 1px solid {line}; border-radius: 9px;
+    font-family: "{font}"; font-size: 11px; padding: 8px;
+}}
+
+/* 输入 */
+QLineEdit, QComboBox, QSpinBox {{
+    background: {input_bg}; border: 1px solid {line}; border-radius: 7px;
+    padding: 6px 8px; font-size: 12px; color: {text};
+}}
+QLineEdit:focus, QComboBox:focus, QSpinBox:focus {{ border: 1px solid {accent_l}; }}
+QLineEdit:disabled {{ color: {hint}; background: {surface2}; }}
+QComboBox::drop-down {{ border: none; width: 20px; }}
+QComboBox QAbstractItemView {{
+    background: {surface}; border: 1px solid {line}; selection-background-color: {accent};
+    selection-color: #ffffff; outline: none;
+}}
+
+/* 复选/单选 —— 显式描边+填充，深浅色都清晰可见 */
+QCheckBox, QRadioButton {{ font-size: 12px; color: {text}; spacing: 8px; }}
+QCheckBox::indicator, QRadioButton::indicator {{
+    width: 16px; height: 16px; background: {input_bg}; border: 2px solid {scroll};
+}}
+QRadioButton::indicator {{ border-radius: 10px; }}
+QCheckBox::indicator {{ border-radius: 5px; }}
+QCheckBox::indicator:hover, QRadioButton::indicator:hover {{ border: 2px solid {accent_l}; }}
+QCheckBox::indicator:checked, QRadioButton::indicator:checked {{
+    background: {accent}; border: 2px solid {accent};
+}}
+QCheckBox::indicator:checked {{ image: url(none); }}
+
+/* 表格 */
+QTableWidget {{
+    background: {surface}; border: 1px solid {line}; border-radius: 8px;
+    gridline-color: {line}; font-size: 12px;
+}}
+QHeaderView::section {{
+    background: {surface2}; color: {sub}; border: none; border-bottom: 1px solid {line};
+    padding: 6px 8px; font-size: 11px; font-weight: bold;
+}}
+QTableWidget::item:selected {{ background: {accent}; color: #ffffff; }}
+
+/* 数据库树 */
+QTreeWidget#LibTree {{
+    background: {list_bg}; border: 1px solid {line}; border-radius: 10px;
+    font-size: 12px; outline: none; padding: 4px 4px 6px 4px;
+    show-decoration-selected: 1;
+}}
+QTreeWidget#LibTree::item {{
+    height: 30px; color: {text}; border: none;
+    border-top: 1px solid transparent; border-bottom: 1px solid transparent;
+}}
+QTreeWidget#LibTree::item:hover {{ background: {ghost_hover}; }}
+QTreeWidget#LibTree::item:selected {{ background: {accent}; color: {sel_fg}; }}
+QTreeWidget#LibTree::branch {{ background: transparent; }}
+QTreeWidget#LibTree QHeaderView::section {{
+    background: {surface2}; color: {sub}; border: none;
+    border-bottom: 1px solid {line}; padding: 7px 10px;
+    font-size: 11px; font-weight: bold;
+}}
+
+QTabWidget::pane {{ border: 1px solid {line}; border-radius: 8px; top: -1px; }}
+QTabBar::tab {{
+    background: transparent; color: {sub}; padding: 7px 14px; font-size: 12px;
+    border-bottom: 2px solid transparent;
+}}
+QTabBar::tab:selected {{ color: {accent}; border-bottom: 2px solid {accent}; font-weight: bold; }}
+
+/* 进度条 */
+QProgressBar {{ background: {mini_bg}; border: none; border-radius: 4px; height: 6px; }}
+QProgressBar::chunk {{ background: {accent}; border-radius: 4px; }}
+
+/* 滚动条 */
+QScrollBar:vertical {{ background: transparent; width: 10px; margin: 2px; }}
+QScrollBar::handle:vertical {{ background: {scroll}; border-radius: 5px; min-height: 30px; }}
+QScrollBar::handle:vertical:hover {{ background: {accent_l}; }}
+QScrollBar::add-line, QScrollBar::sub-line {{ height: 0; width: 0; }}
+QScrollBar:horizontal {{ background: transparent; height: 10px; margin: 2px; }}
+QScrollBar::handle:horizontal {{ background: {scroll}; border-radius: 5px; min-width: 30px; }}
+
+/* 提示气泡 —— 显式 border-color/background-color，修复不显示 */
+QToolTip {{
+    background-color: {tip_bg}; color: {tip_fg}; border: 1px solid {tip_bd};
+    border-radius: 6px; padding: 6px 9px; font-size: 12px;
+}}
+
+/* 弹窗按钮 */
+QMessageBox {{ background: {surface}; }}
+QMessageBox QPushButton {{
+    background: {accent}; color: #ffffff; border: none; border-radius: 7px;
+    padding: 6px 18px; font-size: 12px; min-width: 68px;
+}}
+QMessageBox QPushButton:hover {{ background: {accent_l}; }}
+"""

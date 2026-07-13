@@ -1,0 +1,134 @@
+# -*- coding: utf-8 -*-
+"""
+首页 —— 品牌门面 + 快捷入口 + 数据库概览 + 完整帮助文档
+======================================================
+程序启动后的落地页。让用户一眼看懂能做什么、数据在哪、怎么用。
+兼容 Windows 7 + Python 3.8 + PySide2。
+"""
+import os
+
+from PySide2.QtCore import Qt
+from PySide2.QtGui import QPixmap
+from PySide2.QtWidgets import (QVBoxLayout, QHBoxLayout, QGridLayout, QLabel,
+                               QFrame, QPushButton)
+
+from .base_page import BasePage
+from ..widgets.clickable_card import ClickableCard
+from core import version, library, paths
+
+ENTRIES = [
+    ("attendance", "🗓", "考勤数据填报", "打卡系统数据 → 自动填入待填考勤表并算工时"),
+    ("reconcile", "⚖", "工时对账", "来源与对账单核对，出异常汇总 + 可信度评分"),
+    ("arrival", "📦", "到料明细表", "扫描送货计划，统计未收料，生成每日到料明细"),
+    ("pivot", "📊", "透视表制作", "采购数据自动清洗汇总，生成原生数据透视表"),
+    ("library", "🗄", "数据库", "把各处表格拖进来，自动识别归档、随取随用"),
+]
+
+
+class HomePage(BasePage):
+    def __init__(self, main):
+        super(HomePage, self).__init__(
+            main, "欢迎使用",
+            "峰运通数据管理系统 —— 四大功能一站式处理，数据自动归档。")
+
+    def build_body(self, layout):
+        layout.addWidget(self._hero())
+        sec = QLabel("快捷入口"); sec.setObjectName("SecTitle")
+        layout.addWidget(sec)
+        grid = QGridLayout(); grid.setSpacing(12)
+        for i, (key, icon, title, desc) in enumerate(ENTRIES):
+            card = ClickableCard(key, icon, title, desc)
+            card.clicked.connect(self.main.switch_to)
+            grid.addWidget(card, i // 3, i % 3)
+        layout.addLayout(grid)
+
+        self.stats = QLabel(""); self.stats.setObjectName("Hint")
+        self.stats.setWordWrap(True)
+        layout.addWidget(self.stats)
+
+        layout.addWidget(self._help())
+        layout.addStretch(1)
+        self.refresh_view()
+
+    def _hero(self):
+        card = QFrame(); card.setObjectName("HeroCard")
+        h = QHBoxLayout(card); h.setContentsMargins(20, 18, 20, 18); h.setSpacing(16)
+        logo = QLabel()
+        p = os.path.join(paths.assets_dir(), "logo_128.png")
+        if os.path.exists(p):
+            logo.setPixmap(QPixmap(p).scaled(76, 76, Qt.KeepAspectRatio,
+                                             Qt.SmoothTransformation))
+        h.addWidget(logo, 0, Qt.AlignTop)
+        col = QVBoxLayout(); col.setSpacing(4)
+        name = QLabel(version.APP_NAME); name.setObjectName("HeroTitle")
+        col.addWidget(name)
+        ver = QLabel("版本 " + version.version_str()); ver.setObjectName("Hint")
+        col.addWidget(ver)
+        intro = QLabel("面向峰运通业务打造：考勤、对账、到料、透视四大功能，"
+                       "输出统一归档，配自带数据库自动分类管理各类表格。")
+        intro.setObjectName("HeroDesc"); intro.setWordWrap(True)
+        col.addWidget(intro)
+        h.addLayout(col, 1)
+        return card
+
+    def _help(self):
+        from ..widgets.collapsible import Collapsible
+        box = QFrame(); box.setObjectName("Card")
+        v = QVBoxLayout(box); v.setContentsMargins(16, 14, 16, 14); v.setSpacing(8)
+        title = QLabel("使用帮助"); title.setObjectName("SecTitle")
+        v.addWidget(title)
+        for i, (t, html) in enumerate(_HELP):
+            v.addWidget(Collapsible(t, html, expanded=(i == 0)))
+        return box
+
+    def refresh_view(self):
+        c = library.counts()
+        total = sum(c.get(k, 0) for k in (library.CATEGORIES + [library.UNKNOWN]))
+        if not total:
+            self.stats.setText("📁 数据库当前为空 —— 到「数据库」页把常用表拖进来，"
+                               "各功能就能自动取用。")
+            return
+        parts = []
+        for cat in library.CATEGORIES:
+            if c.get(cat):
+                parts.append("%s %d" % (library.CATEGORY_TITLES[cat], c[cat]))
+        line = "📁 数据库已归档 %d 张表：" % total + "　".join(parts)
+        if c.get(library.UNKNOWN):
+            line += "　·　未识别 %d" % c[library.UNKNOWN]
+        self.stats.setText(line)
+
+
+_HELP = [
+    ("整体流程 · 数据存到哪",
+     "本系统四大功能的<b>输出统一归档</b>在：<br>"
+     "&nbsp;&nbsp;<code>文档 / 峰运通数据管理系统 / 输出 / &lt;功能名&gt; / &lt;时间戳&gt;</code><br>"
+     "输入来源不限；建议先把常用表拖进<b>「数据库」</b>，程序会自动识别用途归档，"
+     "之后在各功能页点<b>“从数据库选择 / 载入最新”</b>即可直接取用，不必每次到处找文件。"),
+    ("① 考勤数据填报",
+     "<b>需要：</b>系统数据（打卡来源，可多选）+ 待填考勤表（目标，可多选）。<br>"
+     "<b>做什么：</b>按“姓名 + 日期”把打卡时间填入考勤表，算出实际工时。<br>"
+     "<b>输出：</b>每个考勤表另存为“_已填写”，可一键送去「工时对账」。"),
+    ("② 工时对账",
+     "<b>需要：</b>待对总表（单个）+ 数据来源（工时明细，可多选）+ 对账单（劳务方，可多选）。<br>"
+     "<b>做什么：</b>把来源工时填入总表并与对账单逐项核对。<br>"
+     "<b>输出：</b>填好的总表 + 异常汇总表 + <b>可信度评分</b>（可信 / 需复核 / 存疑）。"),
+    ("③ 到料明细表",
+     "<b>需要：</b>送货计划表（含“剩余未收”列，可多选）。<br>"
+     "<b>做什么：</b>识别批次、统计未收料物料，可手改主料总类数与备注。<br>"
+     "<b>输出：</b>每日主料到料明细表（样式与示例一致）。"),
+    ("④ 透视表制作",
+     "<b>需要：</b>采购数据表（包装方案 / PFEP / 采购量核算 / 组托辅材，可多选）。<br>"
+     "<b>做什么：</b>自动定位表头、清洗数据、统一单位规格，按编码/名称/规格/单位分组汇总。<br>"
+     "<b>输出：</b>Excel 原生数据透视表 + 分组合计 + 可信度报告。“人工复核后生成…”可先核对再出表。"),
+    ("🗄 数据库怎么用",
+     "把任意表格<b>拖进「数据库」页</b>，程序据文件名与表头自动判定它属于哪一类"
+     "（填报系统数据 / 待填考勤表 / 对账来源 / 待对总表 / 劳务对账单 / 采购数据 / 送货计划），"
+     "复制归档并记录最后更新日期与可信度；<b>没识别出来的会单独进“未识别”</b>，可手动“重新分类”。<br>"
+     "导入后会询问是否删除原文件——删不删都不影响库里的副本。同一张表更新后再导入会<b>自动替换旧版</b>。"),
+    ("常见问题",
+     "<b>· 提示“文件被占用”？</b>先关掉正在用 Excel 打开的那张表再运行。<br>"
+     "<b>· 结果找不到？</b>运行完会自动打开输出文件夹；也可点各页“打开输出文件夹”。<br>"
+     "<b>· 识别错了？</b>透视/对账页支持“人工复核”；数据库里可“重新分类”。<br>"
+     "<b>· 支持 .xls 吗？</b>支持 .xlsx / .xlsm / .xls。<br>"
+     "<b>· 深色模式？</b>「设置 · 外观」可选 跟随系统 / 浅色 / 深色。"),
+]

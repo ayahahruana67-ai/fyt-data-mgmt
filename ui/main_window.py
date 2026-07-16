@@ -25,6 +25,7 @@ from .pages.pivot_page import PivotPage
 from .pages.library_page import LibraryPage
 from .pages.rename_page import RenamePage
 from .pages.currency_page import CurrencyPage
+from .pages.invoice_page import InvoicePage
 from .pages.text_page import TextPage
 from .pages.pdf_page import PdfPage
 from .pages.excel_tools_page import ExcelToolsPage
@@ -43,6 +44,7 @@ NAV = [
     ("销售", "采购数对账", "purchase"),
     ("销售", "送货计划表", "delivery"),
     ("数据", "数据库", "library"),
+    ("财务", "增值税发票统计", "invoice"),
     ("财务", "金额大写", "currency"),
     ("工具箱", "批量重命名", "rename"),
     ("工具箱", "文本工具箱", "text"),
@@ -286,6 +288,7 @@ class MainWindow(QMainWindow):
                  "delivery": DeliveryPage, "library": LibraryPage,
                  "rename": RenamePage, "currency": CurrencyPage,
                  "text": TextPage, "pdf": PdfPage, "excel": ExcelToolsPage,
+                 "invoice": InvoicePage,
                  "settings": SettingsPage, "about": AboutPage}
         for _, _, key in NAV:
             page = ctors[key](self)

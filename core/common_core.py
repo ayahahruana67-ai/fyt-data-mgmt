@@ -60,22 +60,34 @@ class Options:
     header_row    : 全局手动表头行(1-based)；None=自动。（per-file 映射优先）
     sheet_name    : 全局手动工作表名；None=自动/全部。（per-file 映射优先）
     tolerance     : 对账工时比对容差(小时)。
-    cross_day     : 填报下班早于上班时的处理 "wrap"=+24(默认)/"zero"=记0/"flag"=记负并提示。
     data_start    : 手动数据起始行(1-based)；None=表头下一行。（per-file 映射优先）
     skip_extra    : 追加的“非工时”标记词集合（与内置 SKIP_MARKS 合并）。
     columns       : per-file 列映射 {文件名basename: {"sheet":名或None, "header":行1based或None,
                     "data_start":行或None, "roles":{角色:列0based}}}。手动映射优先于自动识别。
+    auto_actual   : 是否自动按半小时算“实际上/下班时间”（上班进位、下班退位）。默认 True。
+    night_shift   : 是否启用两班制夜班识别（跨零点 +24 修正）。默认 True。
+    night_start_hour   : 实际上班钟点 ≥ 此值判为夜班。默认 17.0。
+    night_workday_hours: 夜班标准工时（加班基准）。默认 11.0。
+    night_max_hours    : 夜班合理工时上限，超过判异常（防漏打卡）。默认 16.0。
     """
     def __init__(self, workday_hours=STANDARD_WORKDAY_HOURS, overtime=True,
                  conflict="last", header_row=None, sheet_name=None, tolerance=TOL,
-                 cross_day="wrap", data_start=None, skip_extra=None, columns=None):
+                 data_start=None, skip_extra=None, columns=None,
+                 auto_actual=True, night_shift=True, night_start_hour=17.0,
+                 night_workday_hours=11.0, night_max_hours=16.0):
         self.workday_hours = float(workday_hours)
         self.overtime = bool(overtime)
+        # 自动按半小时算“实际上/下班时间”：上班进位、下班退位，再据此算实际工时。
+        self.auto_actual = bool(auto_actual)
+        # 两班制：按实际上班钟点区分白/夜班；夜班跨零点自动 +24 修正。
+        self.night_shift = bool(night_shift)              # 是否启用夜班识别
+        self.night_start_hour = float(night_start_hour)   # 上班打卡≥此钟点 → 夜班
+        self.night_workday_hours = float(night_workday_hours)  # 夜班标准工时(加班基准)
+        self.night_max_hours = float(night_max_hours)     # 夜班合理工时上限(超则判异常)
         self.conflict = conflict if conflict in ("last", "first", "warn") else "last"
         self.header_row = header_row
         self.sheet_name = (sheet_name or None)
         self.tolerance = float(tolerance)
-        self.cross_day = cross_day if cross_day in ("wrap", "zero", "flag") else "wrap"
         self.data_start = data_start
         self.skip_extra = set(skip_extra) if skip_extra else set()
         self.columns = columns if columns else {}
@@ -119,18 +131,22 @@ class Options:
     def summary(self):
         """一行文字，用于日志追溯本次采用的选项。"""
         cn = {"last": "后者覆盖", "first": "先者优先", "warn": "不覆盖仅提示"}
-        cd = {"wrap": "+24", "zero": "记0", "flag": "记负提示"}
         parts = ["标准工时=%g" % self.workday_hours,
                  "加班=%s" % ("算" if self.overtime else "不算"),
                  "重复=%s" % cn.get(self.conflict, self.conflict),
-                 "容差=%g" % self.tolerance,
-                 "跨天=%s" % cd.get(self.cross_day, self.cross_day)]
+                 "容差=%g" % self.tolerance]
         if self.header_row:
             parts.append("表头行=%d" % self.header_row)
         if self.sheet_name:
             parts.append("工作表=%s" % self.sheet_name)
         if self.skip_extra:
             parts.append("额外假休标记=%s" % "/".join(sorted(self.skip_extra)))
+        parts.append("实际时间=%s" % ("自动半小时进退位" if self.auto_actual else "不自动"))
+        if self.night_shift:
+            parts.append("夜班=启用(≥%g点/标准%gh/上限%gh)"
+                         % (self.night_start_hour, self.night_workday_hours, self.night_max_hours))
+        else:
+            parts.append("夜班=不识别")
         if self.columns:
             parts.append("列映射=%d个文件" % len(self.columns))
         return "；".join(parts)
@@ -218,6 +234,33 @@ def to_hours(t):
     if t is None:
         return None
     return t.hour + t.minute / 60.0 + t.second / 3600.0
+
+
+def round_half_hour(t, mode):
+    """按半小时把 datetime.time 取整到最近的整点/半点。
+
+    mode="up"  进位（用于上班）：向上取到 :00 或 :30。7:56→8:00，7:31→8:00，7:30→7:30。
+    mode="down"退位（用于下班）：向下取到 :00 或 :30。8:13→8:00，8:24→8:00，8:30→8:30。
+    恰好落在整点/半点则不变。t 为 None 返回 None。
+    """
+    import math
+    if t is None:
+        return None
+    total = t.hour * 3600 + t.minute * 60 + t.second      # 当日秒数
+    step = 1800                                            # 半小时
+    if mode == "up":
+        secs = int(math.ceil(total / float(step))) * step
+    else:                                                  # down
+        secs = (total // step) * step
+    secs = max(0, min(secs, 86400 - step))                # 兜底钳制（考勤为日间，进位不会到 24:00）
+    return datetime.time(secs // 3600, (secs % 3600) // 60)
+
+
+def fmt_time(t):
+    """datetime.time -> 'HH:MM' 字符串；None -> ''。"""
+    if t is None:
+        return ""
+    return "%02d:%02d" % (t.hour, t.minute)
 
 
 def parse_rest(v):

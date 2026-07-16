@@ -12,13 +12,13 @@
 APP_NAME = "峰运通数据管理系统"
 APP_NAME_EN = "FYT Data Management System"      # 英文名（安装目录、注册表键用，避免中文路径问题）
 APP_ID = "FYTDataMgmt"                            # 内部短标识（注册表、互斥量、配置目录）
-PUBLISHER = "重庆峰运通供应链管理公司"
-COPYRIGHT = "Copyright (c) 2026 重庆峰运通供应链管理公司"
+PUBLISHER = "KuroNeko-night"
+COPYRIGHT = "Copyright (c) 2026 KuroNeko-night"
 
 # ---------------- 版本号（语义化 主.次.修订）----------------
-VERSION = "1.0.4"
-VERSION_TUPLE = (1, 0, 4)
-BUILD_DATE = "2026-07-15"
+VERSION = "1.0.5"
+VERSION_TUPLE = (1, 0, 5)
+BUILD_DATE = "2026-07-16"
 
 # ---------------- 更新检查 ----------------
 # 更新模块优先读取 UPDATE_MANIFEST_URL；留空则由下面的 OWNER/REPO 自动拼 GitHub latest 地址。

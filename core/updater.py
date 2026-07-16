@@ -153,11 +153,36 @@ def download_installer(url, dest_dir=None, progress=None, log=None, timeout=30):
     return dest
 
 
+# 等本程序进程退出后再拉起安装器，装完自动清理安装包。
+# 关键点：
+#  1) 无窗口 cmd 下管道 `|` 不可靠(第二段拿不到 stdin)，故用「tasklist 重定向到文件
+#     + findstr 查文件」替代 `tasklist | find`；findstr 命中返回 0、未命中返回 1，判断进程是否还在。
+#  2) start 加 /wait：Inno 引导进程会等提权副本装完才退出，故本行会阻塞到安装向导整个结束，
+#     其后再删安装包才安全(此时新程序已装到 Program Files，不再占用临时目录里的安装包)。
+_HELPER_BAT = (
+    "@echo off\r\n"
+    ":wait\r\n"
+    "tasklist /FI \"PID eq __PID__\" /NH > \"__CK__\" 2>nul\r\n"
+    "findstr /I /C:\"__EXE__\" \"__CK__\" >nul\r\n"
+    "if not errorlevel 1 (\r\n"
+    "  ping -n 2 127.0.0.1 >nul\r\n"
+    "  goto wait\r\n"
+    ")\r\n"
+    "del \"__CK__\" 2>nul\r\n"
+    "start \"\" /wait \"__INST__\"\r\n"
+    "del \"__INST__\" 2>nul\r\n"
+    "del \"%~f0\"\r\n"
+)
+
+
 def run_installer(path):
     """启动安装包（会触发 UAC 提权、弹出安装向导）。
 
-    调用方在本函数返回后应立即退出本程序，释放对旧文件的占用，
-    安装向导才能顺利覆盖更新。
+    调用方在本函数返回后应立即退出本程序，释放对旧文件的占用。
+    Win 上通过 detached 批处理助手在“本进程退出后”再拉起安装器：
+    助手全程存活，提权由存活进程发起，规避 Win7 下父进程提前退出
+    导致提权请求被系统丢弃、安装器不打开的问题。安装向导结束后，
+    助手会自动删除临时目录里的安装包与自身。失败则回退到 os.startfile。
     """
     import os
     import sys
@@ -165,7 +190,21 @@ def run_installer(path):
 
     if not path or not os.path.exists(path):
         raise FileNotFoundError("安装包不存在：%s" % path)
-    if sys.platform.startswith("win"):
-        os.startfile(path)          # 用系统默认方式运行 exe，manifest 会自动请求管理员权限
-    else:
-        subprocess.Popen([path])
+    if not sys.platform.startswith("win"):
+        subprocess.Popen([path]); return
+
+    try:
+        exe = os.path.basename(sys.executable) or (version.APP_ID + ".exe")
+        work = os.path.dirname(os.path.abspath(path))
+        ck = os.path.join(work, "_upd_check.txt")
+        bat = (_HELPER_BAT.replace("__PID__", str(os.getpid()))
+               .replace("__EXE__", exe).replace("__INST__", os.path.abspath(path))
+               .replace("__CK__", ck))
+        bat_path = os.path.join(work, "_run_update.bat")
+        with open(bat_path, "w", encoding="mbcs") as f:   # mbcs=系统 ANSI，兼容中文用户名路径
+            f.write(bat)
+        CREATE_NO_WINDOW = 0x08000000
+        subprocess.Popen(["cmd", "/c", bat_path], close_fds=True,
+                         creationflags=CREATE_NO_WINDOW)
+    except Exception:
+        os.startfile(path)          # 回退：manifest 仍会请求管理员权限（Win10/11 一般可用）

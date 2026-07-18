@@ -25,6 +25,7 @@ from . import paths as _paths
 from . import settings as settings_mod
 from .common_core import warn_if_uncached   # 公式未刷新检测(读关键表前告警)
 from . import header_detect
+from . import shape_detect
 
 # 表头关键词 -> 角色。识别时先精确匹配，再包含匹配；每列只归一个角色。
 HEADER_KEYS = {
@@ -147,6 +148,30 @@ def detect_layout(ws, scan_rows=12, log=None):
     """
     return header_detect.detect_layout(
         ws, HEADER_KEYS, require=("name", "qty"), scan_rows=scan_rows, log=log)
+
+
+# 数据形态画像(表头识别失败时兜底):角色顺序≈典型列序,末位 bool 为必需。
+_SHAPE_PROFILE = [
+    ("no", shape_detect.CODE, False),
+    ("name", shape_detect.TEXT, True),
+    ("spec", shape_detect.TEXT, False),
+    ("unit", shape_detect.TEXT, False),
+    ("qty", shape_detect.NUMBER, True),
+]
+
+
+def detect_layout_or_shape(ws, scan_rows=12, log=None):
+    """先按表头文字识别;失败再按数据形态兜底。返回 (header_row, col_map, source)。
+
+    source: "header" / "shape"(需用户确认) / None。兜底映射不应静默落盘。"""
+    hr, col = detect_layout(ws, scan_rows=scan_rows, log=log)
+    if hr:
+        return hr, col, "header"
+    hr2, col2, _conf = shape_detect.detect_by_shape(
+        ws, _SHAPE_PROFILE, scan_rows=scan_rows, log=log)
+    if hr2:
+        return hr2, col2, "shape"
+    return None, {}, None
 
 
 def load_rows(path, sheet=None, log=None):

@@ -24,6 +24,7 @@ from openpyxl.utils import get_column_letter
 
 from . import paths as _paths
 from . import settings as _settings
+from . import shape_detect
 from .common_core import warn_if_uncached   # 公式未刷新检测(读关键表前告警)
 
 # 兜底固定列(表头识别失败时回退): 编码2/名称3/供应商5/需求7/剩余未收12
@@ -154,6 +155,29 @@ def locate_columns(ws):
             return cols
     return None
 
+
+# 数据形态画像:编码/名称/供应商/需求/剩余未收。code 与两数值列为必需(与 locate 一致)。
+_SHAPE_PROFILE = [
+    ("code", shape_detect.CODE, True),
+    ("name", shape_detect.TEXT, False),
+    ("supplier", shape_detect.TEXT, False),
+    ("demand", shape_detect.NUMBER, True),
+    ("remain", shape_detect.NUMBER, True),
+]
+
+
+def _locate_by_shape(ws, log=None):
+    """表头文字识别失败时,按数据形态兜底猜列。返回与 locate_columns 同构的 dict 或 None。
+
+    命中后由上层(UI)交用户核对再生成;命令行/自动路径也会在日志醒目提示。"""
+    hr, col, _conf = shape_detect.detect_by_shape(
+        ws, _SHAPE_PROFILE, scan_rows=HEADER_SCAN_ROWS, log=log)
+    if not hr:
+        return None
+    return {"code": col["code"], "name": col.get("name", 0),
+            "supplier": col.get("supplier", 0), "demand": col["demand"],
+            "remain": col["remain"], "header_row": hr}
+
 def detect_batch(path):
     """从表内A1标题优先识别批次号, 失败则从文件名识别, 再失败返回空串"""
     try:
@@ -191,7 +215,9 @@ def extract_unreceived(path, log=None):
     wb = openpyxl.load_workbook(path, data_only=True)
     ws = _pick_data_ws(wb, log=log)
     cols = locate_columns(ws)
-    if cols is None:                                # 回退: 老的固定列
+    if cols is None:                                # 表头文字识别失败: 先试数据形态兜底
+        cols = _locate_by_shape(ws, log=log)
+    if cols is None:                                # 都失败才回退老的固定列
         cols = {"code": COL_CODE, "name": COL_NAME, "supplier": COL_SUPPLIER,
                 "demand": COL_DEMAND, "remain": COL_REMAIN, "header_row": 2}
     c_code, c_name = cols["code"], cols["name"]

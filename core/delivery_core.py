@@ -24,6 +24,7 @@ from openpyxl.utils import get_column_letter
 from . import paths as _paths
 from . import settings as settings_mod
 from . import header_detect
+from . import shape_detect
 
 # 表头关键词 -> 角色。识别时先精确匹配，再包含匹配；每列只归一个角色。
 HEADER_KEYS = {
@@ -80,6 +81,32 @@ def detect_layout(ws, scan_rows=12, log=None):
         exclude_contains=_EXCLUDE_CONTAINS, log=log)
 
 
+# 数据形态画像(供 header_detect 失败时兜底):角色顺序≈典型列序,末位 bool 为必需。
+_SHAPE_PROFILE = [
+    ("code", shape_detect.CODE, True),
+    ("cname", shape_detect.TEXT, False),
+    ("qty", shape_detect.NUMBER, False),
+    ("sup_code", shape_detect.CODE, False),
+    ("sup_name", shape_detect.TEXT, False),
+]
+
+
+def detect_layout_or_shape(ws, scan_rows=12, log=None):
+    """先按表头文字识别;失败再按数据形态兜底。
+
+    返回 (header_row, col_map, source):source 为 "header"(表头识别)或
+    "shape"(形态兜底,需用户确认)或 None(都失败)。兜底命中的映射**不应静默落盘**,
+    由调用方交用户核对。"""
+    hr, col = detect_layout(ws, scan_rows=scan_rows, log=log)
+    if hr:
+        return hr, col, "header"
+    hr2, col2, _conf = shape_detect.detect_by_shape(
+        ws, _SHAPE_PROFILE, scan_rows=scan_rows, log=log)
+    if hr2:
+        return hr2, col2, "shape"
+    return None, {}, None
+
+
 def list_sheets(path):
     """列出工作簿的子表名(供界面下拉选择)。读失败/非 xlsx 返回 []。"""
     ext = os.path.splitext(path)[1].lower()
@@ -127,6 +154,44 @@ def load_sheet(path, sheet=None, log=None):
         return rows, {"sheet": ws.title, "header_row": header_row, "col": col}
     finally:
         wb.close()
+
+
+def analyze(path, sheet=None, log=None):
+    """选择即扫描:只读地预检一个文件的表头识别结果,不生成任何文件。
+
+    供 UI 在用户选文件后立刻反馈"能否认出各列 / 是靠形态兜底(需核对)",
+    以便在点"生成"前就发现列错位。返回 dict:
+      ok           - 是否识别成功(拿到必需列)
+      sheet        - 命中的子表名
+      header_row   - 表头所在行(1-based)
+      roles        - {角色: 列号}
+      source       - "header"(表头文字识别) / "shape"(形态兜底,需人工核对) / None
+      n_rows       - 表头之后的数据行数(粗计,不排合计行)
+      sheets       - 该簿全部子表名
+      error        - 失败原因(ok=False 时)
+    """
+    res = {"ok": False, "sheet": "", "header_row": 0, "roles": {},
+           "source": None, "n_rows": 0, "sheets": [], "error": ""}
+    try:
+        res["sheets"] = list_sheets(path)
+        wb = openpyxl.load_workbook(path, data_only=True, read_only=True)
+        try:
+            ws = wb[sheet] if (sheet and sheet in wb.sheetnames) else wb[wb.sheetnames[0]]
+            hr, col, src = detect_layout_or_shape(ws, log=log)
+            res["sheet"] = ws.title
+            if not hr:
+                res["error"] = "未能识别表头(需含“物料号/编码”列)"
+                return res
+            res["ok"] = True
+            res["header_row"] = hr
+            res["roles"] = dict(col)
+            res["source"] = src
+            res["n_rows"] = max(0, (ws.max_row or hr) - hr)
+        finally:
+            wb.close()
+    except Exception as e:
+        res["error"] = str(e)
+    return res
 
 
 def _has_supplier(layout):

@@ -16,8 +16,8 @@ PUBLISHER = "KuroNeko-night"
 COPYRIGHT = "Copyright (c) 2026 KuroNeko-night"
 
 # ---------------- 版本号（语义化 主.次.修订）----------------
-VERSION = "1.1.1"
-VERSION_TUPLE = (1, 1, 1)
+VERSION = "1.2.0"
+VERSION_TUPLE = (1, 2, 0)
 BUILD_DATE = "2026-07-18"
 
 # ---------------- 更新检查 ----------------

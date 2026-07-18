@@ -471,6 +471,7 @@ imported by:
  &#8226;   <a href="#ui.widgets.clickable_card">ui.widgets.clickable_card</a>
  &#8226;   <a href="#ui.widgets.collapsible">ui.widgets.collapsible</a>
  &#8226;   <a href="#ui.widgets.drop_area">ui.widgets.drop_area</a>
+ &#8226;   <a href="#ui.widgets.file_preview">ui.widgets.file_preview</a>
  &#8226;   <a href="#ui.widgets.file_zone">ui.widgets.file_zone</a>
  &#8226;   <a href="#ui.widgets.notice_bar">ui.widgets.notice_bar</a>
  &#8226;   <a href="#ui.widgets.run_panel">ui.widgets.run_panel</a>
@@ -595,6 +596,7 @@ imported by:
  &#8226;   <a href="#ui.widgets.clickable_card">ui.widgets.clickable_card</a>
  &#8226;   <a href="#ui.widgets.collapsible">ui.widgets.collapsible</a>
  &#8226;   <a href="#ui.widgets.drop_area">ui.widgets.drop_area</a>
+ &#8226;   <a href="#ui.widgets.file_preview">ui.widgets.file_preview</a>
  &#8226;   <a href="#ui.widgets.file_zone">ui.widgets.file_zone</a>
  &#8226;   <a href="#ui.widgets.notice_bar">ui.widgets.notice_bar</a>
  &#8226;   <a href="#ui.widgets.run_panel">ui.widgets.run_panel</a>
@@ -3219,10 +3221,12 @@ imports:
  &#8226;   <a href="#core.paths">core.paths</a>
  &#8226;   <a href="#core.pdf_core">core.pdf_core</a>
  &#8226;   <a href="#core.pivot_core">core.pivot_core</a>
+ &#8226;   <a href="#core.preview_core">core.preview_core</a>
  &#8226;   <a href="#core.purchase_core">core.purchase_core</a>
  &#8226;   <a href="#core.reconcile_core">core.reconcile_core</a>
  &#8226;   <a href="#core.rename_core">core.rename_core</a>
  &#8226;   <a href="#core.settings">core.settings</a>
+ &#8226;   <a href="#core.shape_detect">core.shape_detect</a>
  &#8226;   <a href="#core.text_core">core.text_core</a>
  &#8226;   <a href="#core.updater">core.updater</a>
  &#8226;   <a href="#core.version">core.version</a>
@@ -3244,10 +3248,12 @@ imported by:
  &#8226;   <a href="#core.paths">core.paths</a>
  &#8226;   <a href="#core.pdf_core">core.pdf_core</a>
  &#8226;   <a href="#core.pivot_core">core.pivot_core</a>
+ &#8226;   <a href="#core.preview_core">core.preview_core</a>
  &#8226;   <a href="#core.purchase_core">core.purchase_core</a>
  &#8226;   <a href="#core.reconcile_core">core.reconcile_core</a>
  &#8226;   <a href="#core.rename_core">core.rename_core</a>
  &#8226;   <a href="#core.settings">core.settings</a>
+ &#8226;   <a href="#core.shape_detect">core.shape_detect</a>
  &#8226;   <a href="#core.text_core">core.text_core</a>
  &#8226;   <a href="#core.updater">core.updater</a>
  &#8226;   <a href="#core.version">core.version</a>
@@ -3274,6 +3280,7 @@ imported by:
  &#8226;   <a href="#ui.pages.rename_page">ui.pages.rename_page</a>
  &#8226;   <a href="#ui.pages.settings_page">ui.pages.settings_page</a>
  &#8226;   <a href="#ui.pages.text_page">ui.pages.text_page</a>
+ &#8226;   <a href="#ui.widgets.file_preview">ui.widgets.file_preview</a>
  &#8226;   <a href="#ui.widgets.file_zone">ui.widgets.file_zone</a>
 
   </div>
@@ -3289,6 +3296,7 @@ imports:
  &#8226;   <a href="#core.common_core">core.common_core</a>
  &#8226;   <a href="#core.paths">core.paths</a>
  &#8226;   <a href="#core.settings">core.settings</a>
+ &#8226;   <a href="#core.shape_detect">core.shape_detect</a>
  &#8226;   <a href="#datetime">datetime</a>
  &#8226;   <a href="#glob">glob</a>
  &#8226;   <a href="#numbers">numbers</a>
@@ -3415,6 +3423,7 @@ imports:
  &#8226;   <a href="#core.header_detect">core.header_detect</a>
  &#8226;   <a href="#core.paths">core.paths</a>
  &#8226;   <a href="#core.settings">core.settings</a>
+ &#8226;   <a href="#core.shape_detect">core.shape_detect</a>
  &#8226;   <a href="#openpyxl">openpyxl</a>
  &#8226;   <a href="#openpyxl.styles">openpyxl.styles</a>
  &#8226;   <a href="#openpyxl.utils">openpyxl.utils</a>
@@ -3625,6 +3634,28 @@ imported by:
 </div>
 
 <div class="node">
+  <a name="core.preview_core"></a>
+  <a target="code" href="///C:/Users/mai/Desktop/%E7%A8%8B%E5%BA%8F%E9%87%8D%E6%9E%84/%E5%B3%B0%E8%BF%90%E9%80%9A%E6%95%B0%E6%8D%AE%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9F/core/preview_core.py" type="text/plain"><tt>core.preview_core</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#core">core</a>
+ &#8226;   <a href="#csv">csv</a>
+ &#8226;   <a href="#datetime">datetime</a>
+ &#8226;   <a href="#openpyxl">openpyxl</a>
+ &#8226;   <a href="#os">os</a>
+ &#8226;   <a href="#xlrd">xlrd</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#core">core</a>
+ &#8226;   <a href="#ui.widgets.file_preview">ui.widgets.file_preview</a>
+
+  </div>
+
+</div>
+
+<div class="node">
   <a name="core.purchase_core"></a>
   <a target="code" href="///C:/Users/mai/Desktop/%E7%A8%8B%E5%BA%8F%E9%87%8D%E6%9E%84/%E5%B3%B0%E8%BF%90%E9%80%9A%E6%95%B0%E6%8D%AE%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9F/core/purchase_core.py" type="text/plain"><tt>core.purchase_core</tt></a>
 <span class="moduletype">SourceModule</span>  <div class="import">
@@ -3634,6 +3665,7 @@ imports:
  &#8226;   <a href="#core.header_detect">core.header_detect</a>
  &#8226;   <a href="#core.paths">core.paths</a>
  &#8226;   <a href="#core.settings">core.settings</a>
+ &#8226;   <a href="#core.shape_detect">core.shape_detect</a>
  &#8226;   <a href="#openpyxl">openpyxl</a>
  &#8226;   <a href="#openpyxl.styles">openpyxl.styles</a>
  &#8226;   <a href="#openpyxl.utils">openpyxl.utils</a>
@@ -3724,6 +3756,27 @@ imported by:
  &#8226;   <a href="#ui.pages.arrival_page">ui.pages.arrival_page</a>
  &#8226;   <a href="#ui.pages.base_page">ui.pages.base_page</a>
  &#8226;   <a href="#ui.pages.settings_page">ui.pages.settings_page</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="core.shape_detect"></a>
+  <a target="code" href="///C:/Users/mai/Desktop/%E7%A8%8B%E5%BA%8F%E9%87%8D%E6%9E%84/%E5%B3%B0%E8%BF%90%E9%80%9A%E6%95%B0%E6%8D%AE%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9F/core/shape_detect.py" type="text/plain"><tt>core.shape_detect</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#core">core</a>
+ &#8226;   <a href="#datetime">datetime</a>
+ &#8226;   <a href="#re">re</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#core">core</a>
+ &#8226;   <a href="#core.arrival_core">core.arrival_core</a>
+ &#8226;   <a href="#core.delivery_core">core.delivery_core</a>
+ &#8226;   <a href="#core.purchase_core">core.purchase_core</a>
 
   </div>
 
@@ -3821,6 +3874,7 @@ imports:
   <div class="import">
 imported by:
     <a href="#core.excel_tools_core">core.excel_tools_core</a>
+ &#8226;   <a href="#core.preview_core">core.preview_core</a>
  &#8226;   <a href="#importlib.metadata">importlib.metadata</a>
 
   </div>
@@ -4062,7 +4116,9 @@ imported by:
  &#8226;   <a href="#core.library">core.library</a>
  &#8226;   <a href="#core.paths">core.paths</a>
  &#8226;   <a href="#core.pivot_core">core.pivot_core</a>
+ &#8226;   <a href="#core.preview_core">core.preview_core</a>
  &#8226;   <a href="#core.reconcile_core">core.reconcile_core</a>
+ &#8226;   <a href="#core.shape_detect">core.shape_detect</a>
  &#8226;   <a href="#email.utils">email.utils</a>
  &#8226;   <a href="#http.cookiejar">http.cookiejar</a>
  &#8226;   <a href="#main.py">main.py</a>
@@ -9299,6 +9355,7 @@ imported by:
  &#8226;   <a href="#core.invoice_core">core.invoice_core</a>
  &#8226;   <a href="#core.library">core.library</a>
  &#8226;   <a href="#core.pivot_core">core.pivot_core</a>
+ &#8226;   <a href="#core.preview_core">core.preview_core</a>
  &#8226;   <a href="#core.purchase_core">core.purchase_core</a>
  &#8226;   <a href="#core.reconcile_core">core.reconcile_core</a>
  &#8226;   <a href="#openpyxl._constants">openpyxl._constants</a>
@@ -14144,6 +14201,7 @@ imported by:
  &#8226;   <a href="#core.paths">core.paths</a>
  &#8226;   <a href="#core.pdf_core">core.pdf_core</a>
  &#8226;   <a href="#core.pivot_core">core.pivot_core</a>
+ &#8226;   <a href="#core.preview_core">core.preview_core</a>
  &#8226;   <a href="#core.purchase_core">core.purchase_core</a>
  &#8226;   <a href="#core.reconcile_core">core.reconcile_core</a>
  &#8226;   <a href="#core.rename_core">core.rename_core</a>
@@ -14232,6 +14290,7 @@ imported by:
  &#8226;   <a href="#ui.pages.reconcile_page">ui.pages.reconcile_page</a>
  &#8226;   <a href="#ui.pages.rename_page">ui.pages.rename_page</a>
  &#8226;   <a href="#ui.pages.settings_page">ui.pages.settings_page</a>
+ &#8226;   <a href="#ui.widgets.file_preview">ui.widgets.file_preview</a>
  &#8226;   <a href="#ui.widgets.file_zone">ui.widgets.file_zone</a>
  &#8226;   <a href="#urllib.request">urllib.request</a>
  &#8226;   <a href="#uu">uu</a>
@@ -15947,6 +16006,7 @@ imported by:
  &#8226;   <a href="#core.pivot_core">core.pivot_core</a>
  &#8226;   <a href="#core.purchase_core">core.purchase_core</a>
  &#8226;   <a href="#core.rename_core">core.rename_core</a>
+ &#8226;   <a href="#core.shape_detect">core.shape_detect</a>
  &#8226;   <a href="#core.text_core">core.text_core</a>
  &#8226;   <a href="#csv">csv</a>
  &#8226;   <a href="#ctypes._aix">ctypes._aix</a>
@@ -16176,6 +16236,7 @@ imported by:
  &#8226;   <a href="#PySide2.QtWidgets">PySide2.QtWidgets</a>
  &#8226;   <a href="#PySide2.support">PySide2.support</a>
  &#8226;   <a href="#shiboken2.shiboken2">shiboken2.shiboken2</a>
+ &#8226;   <a href="#ui.main_window">ui.main_window</a>
 
   </div>
 
@@ -17221,6 +17282,7 @@ imported by:
  &#8226;   <a href="#ui.pages.rename_page">ui.pages.rename_page</a>
  &#8226;   <a href="#ui.pages.settings_page">ui.pages.settings_page</a>
  &#8226;   <a href="#ui.pages.text_page">ui.pages.text_page</a>
+ &#8226;   <a href="#ui.widgets.file_preview">ui.widgets.file_preview</a>
 
   </div>
 
@@ -17409,6 +17471,7 @@ imports:
  &#8226;   <a href="#ctypes">ctypes</a>
  &#8226;   <a href="#ctypes.wintypes">ctypes.wintypes</a>
  &#8226;   <a href="#os">os</a>
+ &#8226;   <a href="#shiboken2">shiboken2</a>
  &#8226;   <a href="#threading">threading</a>
  &#8226;   <a href="#ui">ui</a>
  &#8226;   <a href="#ui.animations">ui.animations</a>
@@ -17433,6 +17496,8 @@ imports:
  &#8226;   <a href="#ui.pages.text_page">ui.pages.text_page</a>
  &#8226;   <a href="#ui.smooth_scroll">ui.smooth_scroll</a>
  &#8226;   <a href="#ui.theme">ui.theme</a>
+ &#8226;   <a href="#ui.widgets.file_preview">ui.widgets.file_preview</a>
+ &#8226;   <a href="#ui.widgets.file_zone">ui.widgets.file_zone</a>
  &#8226;   <a href="#ui.widgets.side_panel">ui.widgets.side_panel</a>
 
   </div>
@@ -18040,6 +18105,7 @@ imported by:
     <a href="#ui.widgets.clickable_card">ui.widgets.clickable_card</a>
  &#8226;   <a href="#ui.widgets.collapsible">ui.widgets.collapsible</a>
  &#8226;   <a href="#ui.widgets.drop_area">ui.widgets.drop_area</a>
+ &#8226;   <a href="#ui.widgets.file_preview">ui.widgets.file_preview</a>
  &#8226;   <a href="#ui.widgets.file_zone">ui.widgets.file_zone</a>
  &#8226;   <a href="#ui.widgets.notice_bar">ui.widgets.notice_bar</a>
  &#8226;   <a href="#ui.widgets.run_panel">ui.widgets.run_panel</a>
@@ -18110,6 +18176,29 @@ imported by:
 </div>
 
 <div class="node">
+  <a name="ui.widgets.file_preview"></a>
+  <a target="code" href="///C:/Users/mai/Desktop/%E7%A8%8B%E5%BA%8F%E9%87%8D%E6%9E%84/%E5%B3%B0%E8%BF%90%E9%80%9A%E6%95%B0%E6%8D%AE%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9F/ui/widgets/file_preview.py" type="text/plain"><tt>ui.widgets.file_preview</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PySide2.QtCore">PySide2.QtCore</a>
+ &#8226;   <a href="#PySide2.QtWidgets">PySide2.QtWidgets</a>
+ &#8226;   <a href="#core">core</a>
+ &#8226;   <a href="#core.preview_core">core.preview_core</a>
+ &#8226;   <a href="#os">os</a>
+ &#8226;   <a href="#ui.animations">ui.animations</a>
+ &#8226;   <a href="#ui.widgets">ui.widgets</a>
+ &#8226;   <a href="#ui.worker">ui.worker</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#ui.main_window">ui.main_window</a>
+
+  </div>
+
+</div>
+
+<div class="node">
   <a name="ui.widgets.file_zone"></a>
   <a target="code" href="///C:/Users/mai/Desktop/%E7%A8%8B%E5%BA%8F%E9%87%8D%E6%9E%84/%E5%B3%B0%E8%BF%90%E9%80%9A%E6%95%B0%E6%8D%AE%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9F/ui/widgets/file_zone.py" type="text/plain"><tt>ui.widgets.file_zone</tt></a>
 <span class="moduletype">SourceModule</span>  <div class="import">
@@ -18127,7 +18216,8 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#ui.pages.arrival_page">ui.pages.arrival_page</a>
+    <a href="#ui.main_window">ui.main_window</a>
+ &#8226;   <a href="#ui.pages.arrival_page">ui.pages.arrival_page</a>
  &#8226;   <a href="#ui.pages.attendance_page">ui.pages.attendance_page</a>
  &#8226;   <a href="#ui.pages.compare_page">ui.pages.compare_page</a>
  &#8226;   <a href="#ui.pages.delivery_page">ui.pages.delivery_page</a>
@@ -18224,6 +18314,7 @@ imported by:
     <a href="#ui.pages.about_page">ui.pages.about_page</a>
  &#8226;   <a href="#ui.pages.base_page">ui.pages.base_page</a>
  &#8226;   <a href="#ui.pages.library_page">ui.pages.library_page</a>
+ &#8226;   <a href="#ui.widgets.file_preview">ui.widgets.file_preview</a>
 
   </div>
 
@@ -18628,6 +18719,7 @@ imported by:
     <a href="#core.common_core">core.common_core</a>
  &#8226;   <a href="#core.excel_tools_core">core.excel_tools_core</a>
  &#8226;   <a href="#core.library">core.library</a>
+ &#8226;   <a href="#core.preview_core">core.preview_core</a>
  &#8226;   <a href="#xlrd">xlrd</a>
  &#8226;   <a href="#xlrd.biffh">xlrd.biffh</a>
  &#8226;   <a href="#xlrd.book">xlrd.book</a>

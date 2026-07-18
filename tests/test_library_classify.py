@@ -128,6 +128,19 @@ class TestIndexMultiLabel(unittest.TestCase):
         self.assertEqual(c["deliv_supp"], 1)     # 多标签在每类各计一次
         self.assertEqual(c["deliv_bom"], 1)
 
+    def test_remove_item_via_secondary_label(self):
+        # 从附加标签(deliv_supp)删除多标签条目应生效(主类别是 pivot_src)
+        saved = {}
+        orig_save = L._save_index
+        L._save_index = lambda idx: saved.update(idx)
+        try:
+            n = L.remove_item("deliv_supp", "跨功能.xlsx", delete_file=False)
+        finally:
+            L._save_index = orig_save
+        self.assertEqual(n, 1)                    # 按附加标签匹配到并移除
+        names = [it["name"] for it in saved["items"]]
+        self.assertNotIn("跨功能.xlsx", names)
+
 
 class TestGoldenMatrix(unittest.TestCase):
     """真实补充样本→期望类别(缺样本自动 skip)。锁死本轮修复不回退。"""

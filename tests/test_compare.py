@@ -72,6 +72,19 @@ class TestCompare(_Tmp):
         r = self._cmp([["M01", "纸箱", 10]], [["M01", "纸箱", " 10 "]])
         self.assertEqual(r["counts"]["diffs"], 0)
 
+    def test_numeric_key_matches_across_types(self):
+        # 关键列一边是整数 10、另一边是公式算出的 10.0 -> 应对上,不误判"只在单边"
+        r = self._cmp([[10, "纸箱", 1]], [[10.0, "纸箱", 1]])
+        self.assertEqual(r["counts"]["only_a"], 0)
+        self.assertEqual(r["counts"]["only_b"], 0)
+        self.assertEqual(r["counts"]["matched"], 1)
+
+    def test_text_code_key_not_collapsed(self):
+        # 文本编码键:"001" 与 "1" 是不同键,前导零有意义,不得折叠成同键
+        r = self._cmp([["001", "甲", 1]], [["1", "乙", 1]])
+        self.assertEqual(sorted(o["key"] for o in r["only_a"]), ["001"])
+        self.assertEqual(sorted(o["key"] for o in r["only_b"]), ["1"])
+
     def test_only_in_each_side(self):
         r = self._cmp([["M01", "x", 1], ["M02", "y", 2]],
                       [["M02", "y", 2], ["M03", "z", 3]])
@@ -142,7 +155,7 @@ class TestCompareUI(_Tmp):
 
     def test_page_and_dialog_build(self):
         from ui.pages.compare_page import ComparePage
-        from ui.dialogs.compare_review import CompareReviewDialog
+        from ui.dialogs.compare_review import CompareResultPanel
 
         class _FakeMain:                     # 页面只用到 self.main,给个占位
             pass
@@ -158,7 +171,7 @@ class TestCompareUI(_Tmp):
         self.assertTrue(pg.panel.run_btn.isEnabled())     # 齐全后启用
 
         res = C.run(a, b, key="物料编码", out_dir=self._tmp)
-        dlg = CompareReviewDialog(res)                    # 弹窗能从结果构建
+        dlg = CompareResultPanel(res)                     # 面板能从结果构建
         from PySide2.QtWidgets import QTabWidget
         tabs = dlg.findChild(QTabWidget)
         self.assertEqual(tabs.count(), 4)

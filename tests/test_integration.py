@@ -113,6 +113,29 @@ class TestArrival(_TmpOut):
         self.assertIsInstance(arrival_core.detect_batch(plans[0]), str)
 
 
+class TestPivotMeasureText(unittest.TestCase):
+    """度量列(最终采购数量)混入文本时,透视缓存不得把整列判为字符串。
+    否则 Excel 刷新透视后该字段求和归零,与静态总计背离。"""
+
+    def test_stray_text_in_measure_stays_numeric(self):
+        from core import pivot_core as P
+        rows = [
+            ["", "A1", "甲", "S", 1, "个", 10],
+            ["", "A1", "甲", "S", 1, "个", "见附表"],   # 混入文本
+            ["", "A2", "乙", "T", 1, "个", 5],
+        ]
+        meta = P.build_fields_meta(rows)
+        df = meta[P.DATA_FIELD]
+        self.assertFalse(df["has_str"])              # 度量列不因文本被判字符串
+        xml = P.cache_records_xml(rows, meta)
+        self.assertNotIn("见附表", xml)               # 文本不进缓存(不出现 <s v="见附表">)
+        self.assertNotIn("<s ", xml)                  # 度量列无字符串项,全部 <n>/<m>
+        self.assertEqual(xml.count("<n "), 5)         # 两行度量(10,5)+三行数量(1,1,1)
+        # 静态聚合把文本计 0,A1 合计=10,与缓存口径一致
+        a1 = [g for g in P.aggregate(rows) if g[0] == "A1"][0]
+        self.assertEqual(a1[4], 10.0)
+
+
 class TestPivot(_TmpOut):
     def test_run(self):
         srcs = sd.pivot_sources()

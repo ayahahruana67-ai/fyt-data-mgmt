@@ -89,6 +89,23 @@ class TestDelivery(_TmpOut):
         # 顺序任意也应正确辨识主表/供应商来源（不抛异常即通过辨识）
         self.assertTrue(res["master_file"])
         self.assertTrue(res["supplier_file"])
+        self.assertTrue(res.get("supplier_used"))
+
+    def test_run_without_supplier(self):
+        """供应商明细可选：只给物料清单也应正常生成，供应商列留空不报未匹配。"""
+        bom = sd.delivery_bom()
+        if not bom:
+            self.skipTest("缺少送货计划样本")
+        from core import delivery_core
+        res = delivery_core.run(bom, out_dir=self.out("deliv_nosup"),
+                                order_type="KD")
+        self.assertTrue(os.path.isfile(res["plan_path"]))
+        self.assertGreater(res["rows"], 0)
+        self.assertEqual(res["order_type"], "KD")
+        # 若样本 bom 自带供应商列会 supplier_used=True；否则应留空且不计未匹配
+        if not res["supplier_used"]:
+            self.assertEqual(res["missing"], [])
+            self.assertEqual(res["supplier_file"], "")
 
 
 class TestArrival(_TmpOut):

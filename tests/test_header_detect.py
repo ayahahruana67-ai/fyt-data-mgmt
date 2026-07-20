@@ -110,6 +110,23 @@ class TestEngine(_Tmp):
         self.assertIsNotNone(hr)
         self.assertNotIn("交期", c)          # 交期无别名,不应被认领
 
+    def test_inner_whitespace_collapsed_for_exact(self):
+        # 表头含手动换行/内部空格/全角空格时,折叠后仍能精确命中关键词,
+        # 不因空白退化到包含匹配被别列抢占。这是识别率的常见真实缺口。
+        hr, c = self.cols(["零部件\n代码", "供应商 名称", "数　量"],
+                          require=("code",))
+        self.assertEqual(hr, 1)
+        self.assertEqual(c["code"], 1)          # "零部件\n代码" -> "零部件代码" 精确命中
+        self.assertEqual(c["sup_name"], 2)      # "供应商 名称" -> "供应商名称" 精确命中
+        self.assertEqual(c["qty"], 3)           # 全角空格也被折叠
+
+    def test_whitespace_header_still_excluded(self):
+        # 折叠空白后 exclude_contains 仍生效:"委外 供应商\n属性" -> 含"属性"被挡
+        hr, c = self.cols(["零部件代码", "委外 供应商\n属性", "供应商名称"],
+                          require=("code",),
+                          exclude_contains={"sup_name": ["属性"]})
+        self.assertEqual(c["sup_name"], 3)
+
 
 if __name__ == "__main__":
     unittest.main()
